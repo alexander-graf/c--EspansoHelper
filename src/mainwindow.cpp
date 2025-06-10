@@ -44,26 +44,173 @@ MainWindow::~MainWindow()
 void MainWindow::setupUI()
 {
     setWindowTitle("Espanso Helper");
-    setGeometry(100, 100, 800, 600);
+    setGeometry(100, 100, 900, 700);
+
+    // Enable modern Windows styling
+    setStyleSheet(R"(
+        QMainWindow {
+            background-color: #2b2b2b;
+        }
+        QWidget {
+            background-color: #2b2b2b;
+            color: #ffffff;
+        }
+        QTableWidget {
+            background-color: #3c3c3c;
+            alternate-background-color: #404040;
+            gridline-color: #555555;
+            border: 1px solid #555555;
+            border-radius: 4px;
+            selection-background-color: #0078d4;
+            selection-color: #ffffff;
+        }
+        QTableWidget::item {
+            padding: 4px;
+            border-bottom: 1px solid #555555;
+        }
+        QTableWidget::item:selected {
+            background-color: #0078d4;
+            color: #ffffff;
+        }
+        QHeaderView::section {
+            background-color: #404040;
+            color: #ffffff;
+            padding: 8px;
+            border: none;
+            border-bottom: 2px solid #0078d4;
+            font-weight: bold;
+        }
+        QPushButton {
+            background-color: #0078d4;
+            color: #ffffff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            min-height: 20px;
+        }
+        QPushButton:hover {
+            background-color: #106ebe;
+        }
+        QPushButton:pressed {
+            background-color: #005a9e;
+        }
+        QPushButton:disabled {
+            background-color: #555555;
+            color: #888888;
+        }
+        QPushButton#deleteButton {
+            background-color: #d83b01;
+        }
+        QPushButton#deleteButton:hover {
+            background-color: #ea5a0e;
+        }
+        QPushButton#deleteFileButton {
+            background-color: #d13438;
+        }
+        QPushButton#deleteFileButton:hover {
+            background-color: #e81123;
+        }
+        QComboBox {
+            background-color: #3c3c3c;
+            color: #ffffff;
+            border: 1px solid #555555;
+            border-radius: 4px;
+            padding: 6px 12px;
+            min-height: 20px;
+        }
+        QComboBox:hover {
+            border-color: #0078d4;
+        }
+        QComboBox::drop-down {
+            border: none;
+            width: 20px;
+        }
+        QComboBox::down-arrow {
+            image: none;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid #ffffff;
+            margin-right: 5px;
+        }
+        QComboBox QAbstractItemView {
+            background-color: #3c3c3c;
+            color: #ffffff;
+            border: 1px solid #555555;
+            selection-background-color: #0078d4;
+        }
+        QLabel {
+            color: #ffffff;
+            font-weight: bold;
+        }
+        QDialog {
+            background-color: #2b2b2b;
+        }
+        QDialog QLabel {
+            color: #ffffff;
+        }
+        QDialog QLineEdit, QDialog QTextEdit {
+            background-color: #3c3c3c;
+            color: #ffffff;
+            border: 1px solid #555555;
+            border-radius: 4px;
+            padding: 6px;
+        }
+        QDialog QLineEdit:focus, QDialog QTextEdit:focus {
+            border-color: #0078d4;
+        }
+        QToolTip {
+            background-color: #2b2b2b;
+            color: #ffffff;
+            border: 1px solid #555555;
+            border-radius: 4px;
+            padding: 4px;
+        }
+    )");
 
     QWidget *centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->setSpacing(15);
+    mainLayout->setContentsMargins(15, 15, 15, 15);
 
     // YAML file selection
     QHBoxLayout *yamlLayout = new QHBoxLayout();
-    yamlLayout->addWidget(new QLabel("YAML File:"));
+    yamlLayout->setSpacing(10);
+    
+    QLabel *yamlLabel = new QLabel("YAML File:");
+    yamlLabel->setMinimumWidth(80);
+    yamlLayout->addWidget(yamlLabel);
+    
     yamlFileComboBox = new QComboBox();
-    yamlFileComboBox->setMinimumWidth(200);
+    yamlFileComboBox->setMinimumWidth(250);
+    yamlFileComboBox->setToolTip("Select a YAML file to edit");
     yamlLayout->addWidget(yamlFileComboBox);
+    
     openDirButton = new QPushButton("Open Directory");
+    openDirButton->setMinimumWidth(120);
+    openDirButton->setToolTip("Open the espanso match directory in Explorer");
     yamlLayout->addWidget(openDirButton);
+    
     newFileButton = new QPushButton("New File");
+    newFileButton->setMinimumWidth(100);
+    newFileButton->setToolTip("Create a new YAML file");
     yamlLayout->addWidget(newFileButton);
+    
+    deleteFileButton = new QPushButton("Delete File");
+    deleteFileButton->setObjectName("deleteFileButton");
+    deleteFileButton->setMinimumWidth(100);
+    deleteFileButton->setToolTip("Delete the currently selected YAML file");
+    yamlLayout->addWidget(deleteFileButton);
+    
     yamlStatusLabel = new QLabel("✓");
-    yamlStatusLabel->setStyleSheet("color: green; font-weight: bold;");
+    yamlStatusLabel->setStyleSheet("color: #00ff00; font-weight: bold; font-size: 18px; background-color: #1e1e1e; border-radius: 12px; padding: 4px;");
+    yamlStatusLabel->setMinimumWidth(40);
+    yamlStatusLabel->setAlignment(Qt::AlignCenter);
+    yamlStatusLabel->setToolTip("File status: ✓ = valid, ⚠ = needs attention");
     yamlLayout->addWidget(yamlStatusLabel);
+    
     yamlLayout->addStretch();
     mainLayout->addLayout(yamlLayout);
 
@@ -73,24 +220,51 @@ void MainWindow::setupUI()
     snippetTable->setHorizontalHeaderLabels({"Trigger", "Replace", "Description"});
     snippetTable->horizontalHeader()->setStretchLastSection(true);
     snippetTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    snippetTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    snippetTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
     snippetTable->setAlternatingRowColors(true);
+    snippetTable->setGridStyle(Qt::SolidLine);
+    snippetTable->setShowGrid(true);
+    snippetTable->setFrameStyle(QFrame::StyledPanel);
+    snippetTable->setToolTip("Snippets in the selected YAML file. Use Ctrl+Click or Shift+Click for multiple selection.");
+    
+    // Set column widths
+    snippetTable->setColumnWidth(0, 150);  // Trigger
+    snippetTable->setColumnWidth(1, 300);  // Replace
+    
     mainLayout->addWidget(snippetTable);
 
-    // Buttons
+    // Buttons - all side by side
     QHBoxLayout *buttonLayout = new QHBoxLayout();
+    buttonLayout->setSpacing(10);
+    
     addButton = new QPushButton("Add");
-    editButton = new QPushButton("Edit");
-    deleteButton = new QPushButton("Delete");
-    saveButton = new QPushButton("Save");
-    reloadButton = new QPushButton("Reload");
-
+    addButton->setMinimumWidth(80);
+    addButton->setToolTip("Add a new snippet (Ctrl+N)");
     buttonLayout->addWidget(addButton);
+    
+    editButton = new QPushButton("Edit");
+    editButton->setMinimumWidth(80);
+    editButton->setToolTip("Edit selected snippet (F2)");
     buttonLayout->addWidget(editButton);
+    
+    deleteButton = new QPushButton("Delete");
+    deleteButton->setObjectName("deleteButton");
+    deleteButton->setMinimumWidth(80);
+    deleteButton->setToolTip("Delete selected snippets (Del)");
     buttonLayout->addWidget(deleteButton);
+    
     buttonLayout->addStretch();
+    
+    saveButton = new QPushButton("Save");
+    saveButton->setMinimumWidth(80);
+    saveButton->setToolTip("Save changes to file (Ctrl+S)");
     buttonLayout->addWidget(saveButton);
+    
+    reloadButton = new QPushButton("Reload");
+    reloadButton->setMinimumWidth(80);
+    reloadButton->setToolTip("Reload file and refresh file list (F5)");
     buttonLayout->addWidget(reloadButton);
+    
     mainLayout->addLayout(buttonLayout);
 }
 
@@ -114,6 +288,7 @@ void MainWindow::createConnections()
             this, &MainWindow::onYamlFileChanged);
     connect(openDirButton, &QPushButton::clicked, this, &MainWindow::openMatchDirectory);
     connect(newFileButton, &QPushButton::clicked, this, &MainWindow::createNewYamlFile);
+    connect(deleteFileButton, &QPushButton::clicked, this, &MainWindow::deleteCurrentFile);
 }
 
 QString MainWindow::getEspansoConfigPath() const
@@ -310,19 +485,42 @@ void MainWindow::editSnippet()
 
 void MainWindow::deleteSnippet()
 {
-    int currentRow = snippetTable->currentRow();
-    if (currentRow < 0) {
-        QMessageBox::warning(this, "Error", "Please select a snippet to delete!");
+    QList<QTableWidgetItem*> selectedItems = snippetTable->selectedItems();
+    if (selectedItems.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Please select snippets to delete!");
         return;
     }
 
-    QString trigger = snippetTable->item(currentRow, 0)->text();
+    // Get unique rows (items can be from different columns of the same row)
+    QSet<int> rowsToDelete;
+    for (QTableWidgetItem* item : selectedItems) {
+        rowsToDelete.insert(item->row());
+    }
+
+    if (rowsToDelete.isEmpty()) {
+        return;
+    }
+
+    QString message;
+    if (rowsToDelete.size() == 1) {
+        int row = *rowsToDelete.begin();
+        QString trigger = snippetTable->item(row, 0)->text();
+        message = QString("Are you sure you want to delete the snippet with trigger '%1'?").arg(trigger);
+    } else {
+        message = QString("Are you sure you want to delete %1 selected snippets?").arg(rowsToDelete.size());
+    }
+
     QMessageBox::StandardButton reply = QMessageBox::question(this, "Confirm Delete", 
-        QString("Are you sure you want to delete the snippet with trigger '%1'?").arg(trigger),
-        QMessageBox::Yes | QMessageBox::No);
+        message, QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        snippetTable->removeRow(currentRow);
+        // Delete rows in reverse order to avoid index shifting
+        QList<int> sortedRows = rowsToDelete.values();
+        std::sort(sortedRows.begin(), sortedRows.end(), std::greater<int>());
+        
+        for (int row : sortedRows) {
+            snippetTable->removeRow(row);
+        }
         updateYamlStatusIcon();
     }
 }
@@ -616,5 +814,31 @@ void MainWindow::updateYamlStatusIcon()
         qDebug() << "Setting orange warning";
         yamlStatusLabel->setText("⚠");
         yamlStatusLabel->setStyleSheet("color: orange; font-weight: bold;");
+    }
+}
+
+void MainWindow::deleteCurrentFile()
+{
+    if (yamlFileComboBox->currentText().isEmpty()) {
+        QMessageBox::warning(this, "Error", "No file selected!");
+        return;
+    }
+
+    QString fileName = yamlFileComboBox->currentText();
+    QString filePath = matchDirectory + "/" + fileName;
+    
+    QMessageBox::StandardButton reply = QMessageBox::question(this, "Confirm Delete", 
+        QString("Are you sure you want to delete the file '%1'?\n\nThis action cannot be undone!").arg(fileName),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        QFile file(filePath);
+        if (file.remove()) {
+            QMessageBox::information(this, "Success", "File deleted successfully!");
+            scanYamlFiles();
+            loadSnippets();
+        } else {
+            QMessageBox::critical(this, "Error", "Could not delete file: " + file.errorString());
+        }
     }
 }

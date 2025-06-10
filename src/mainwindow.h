@@ -34,6 +34,7 @@ private slots:
     void onYamlFileChanged();
     void openMatchDirectory();
     void createNewYamlFile();
+    void deleteCurrentFile();
 
 private:
     void setupUI();
@@ -56,6 +57,7 @@ private:
     QComboBox *yamlFileComboBox;
     QPushButton *openDirButton;
     QPushButton *newFileButton;
+    QPushButton *deleteFileButton;
     QLabel *yamlStatusLabel;
 
     QString configPath;
