@@ -2,5 +2,6 @@
 <RCC version="1.0">
     <qresource prefix="/icons">
         <file>document.png</file>
+        <file>71.ico</file>
     </qresource>
 </RCC> 

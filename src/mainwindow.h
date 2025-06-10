@@ -15,6 +15,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QDir>
 #include <QtCore/QDebug>
+#include <QtGui/QIcon>
 // #include <yaml-cpp/yaml.h>  // Commented out for now
 
 class MainWindow : public QMainWindow
@@ -29,12 +30,14 @@ private slots:
     void addNewSnippet();
     void editSnippet();
     void deleteSnippet();
+    void copySnippets();
     void saveSnippets();
     void loadSnippets();
     void onYamlFileChanged();
     void openMatchDirectory();
     void createNewYamlFile();
     void deleteCurrentFile();
+    void updateButtonStates();
 
 private:
     void setupUI();
@@ -46,7 +49,7 @@ private:
     bool validateYaml(const QString &content) const;
     bool validateYamlContent(const QString &content) const;
     bool needsQuotes(const QString &text) const;
-    bool hasDuplicateTriggers() const;
+    QString escapeForYaml(const QString &text) const;
     void updateYamlStatusIcon();
 
 protected:
@@ -56,6 +59,7 @@ protected:
     QPushButton *addButton;
     QPushButton *editButton;
     QPushButton *deleteButton;
+    QPushButton *copyButton;
     QPushButton *saveButton;
     QPushButton *reloadButton;
     QComboBox *yamlFileComboBox;

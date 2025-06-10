@@ -26,6 +26,11 @@
 #include <QShortcut>
 #include <QKeyEvent>
 #include <QTimer>
+#include <QIcon>
+#include <QItemSelectionModel>
+#include <QClipboard>
+#include <QGuiApplication>
+#include <QStatusBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -35,6 +40,10 @@ MainWindow::MainWindow(QWidget *parent)
     setupUI();
     createConnections();
     setupKeyboardShortcuts();
+    
+    // Add status bar for feedback messages
+    statusBar()->showMessage("Ready");
+    
     scanYamlFiles();
     if (yamlFileComboBox->count() > 0) {
         loadSnippets();
@@ -49,6 +58,9 @@ void MainWindow::setupUI()
 {
     setWindowTitle("Espanso Helper");
     setGeometry(100, 100, 900, 700);
+    
+    // Set application icon
+    setWindowIcon(QIcon(":/icons/71.ico"));
 
     // Enable modern Windows styling
     setStyleSheet(R"(
@@ -243,19 +255,27 @@ void MainWindow::setupUI()
     
     addButton = new QPushButton("Add");
     addButton->setMinimumWidth(80);
-    addButton->setToolTip("Add a new snippet (Ctrl+N)");
+    addButton->setToolTip("Add a new snippet (Ctrl+N). Duplicate triggers are allowed - Espanso will show a selection dialog.");
     buttonLayout->addWidget(addButton);
     
     editButton = new QPushButton("Edit");
     editButton->setMinimumWidth(80);
-    editButton->setToolTip("Edit selected snippet (F2)");
+    editButton->setToolTip("Edit selected snippet (F2). Duplicate triggers are allowed - Espanso will show a selection dialog.");
+    editButton->setEnabled(false);  // Initially disabled
     buttonLayout->addWidget(editButton);
     
     deleteButton = new QPushButton("Delete");
     deleteButton->setObjectName("deleteButton");
     deleteButton->setMinimumWidth(80);
     deleteButton->setToolTip("Delete selected snippets (Del)");
+    deleteButton->setEnabled(false);  // Initially disabled
     buttonLayout->addWidget(deleteButton);
+    
+    copyButton = new QPushButton("Copy");
+    copyButton->setMinimumWidth(80);
+    copyButton->setToolTip("Duplicate selected snippets and copy to clipboard (Ctrl+C)");
+    copyButton->setEnabled(false);  // Initially disabled
+    buttonLayout->addWidget(copyButton);
     
     buttonLayout->addStretch();
     
@@ -277,6 +297,7 @@ void MainWindow::createConnections()
     connect(addButton, &QPushButton::clicked, this, &MainWindow::addNewSnippet);
     connect(editButton, &QPushButton::clicked, this, &MainWindow::editSnippet);
     connect(deleteButton, &QPushButton::clicked, this, &MainWindow::deleteSnippet);
+    connect(copyButton, &QPushButton::clicked, this, &MainWindow::copySnippets);
     connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveSnippets);
     connect(reloadButton, &QPushButton::clicked, this, [this]() {
         // Visual feedback
@@ -303,6 +324,10 @@ void MainWindow::createConnections()
     connect(openDirButton, &QPushButton::clicked, this, &MainWindow::openMatchDirectory);
     connect(newFileButton, &QPushButton::clicked, this, &MainWindow::createNewYamlFile);
     connect(deleteFileButton, &QPushButton::clicked, this, &MainWindow::deleteCurrentFile);
+    
+    // Connect table selection changes to update copy button state
+    connect(snippetTable->selectionModel(), &QItemSelectionModel::selectionChanged,
+            this, &MainWindow::updateButtonStates);
 }
 
 void MainWindow::setupKeyboardShortcuts()
@@ -311,6 +336,7 @@ void MainWindow::setupKeyboardShortcuts()
     QShortcut *addShortcut = new QShortcut(QKeySequence("Ctrl+N"), this);
     QShortcut *editShortcut = new QShortcut(QKeySequence("F2"), this);
     QShortcut *deleteShortcut = new QShortcut(QKeySequence("Delete"), this);
+    QShortcut *copyShortcut = new QShortcut(QKeySequence("Ctrl+C"), this);
     QShortcut *saveShortcut = new QShortcut(QKeySequence("Ctrl+S"), this);
     QShortcut *reloadShortcut = new QShortcut(QKeySequence("F5"), this);
     QShortcut *newFileShortcut = new QShortcut(QKeySequence("Ctrl+Shift+N"), this);
@@ -321,6 +347,7 @@ void MainWindow::setupKeyboardShortcuts()
     connect(addShortcut, &QShortcut::activated, this, &MainWindow::addNewSnippet);
     connect(editShortcut, &QShortcut::activated, this, &MainWindow::editSnippet);
     connect(deleteShortcut, &QShortcut::activated, this, &MainWindow::deleteSnippet);
+    connect(copyShortcut, &QShortcut::activated, this, &MainWindow::copySnippets);
     connect(saveShortcut, &QShortcut::activated, this, &MainWindow::saveSnippets);
     connect(reloadShortcut, &QShortcut::activated, this, [this]() {
         // Visual feedback for keyboard shortcut too
@@ -483,13 +510,7 @@ void MainWindow::addNewSnippet()
             return;
         }
 
-        // Check for duplicate triggers
-        for (int i = 0; i < snippetTable->rowCount(); ++i) {
-            if (snippetTable->item(i, 0)->text() == trigger) {
-                QMessageBox::warning(this, "Error", "A snippet with this trigger already exists!");
-                return;
-            }
-        }
+        // Note: Duplicate triggers are allowed - Espanso will show a dialog to choose between them
 
         int row = snippetTable->rowCount();
         snippetTable->insertRow(row);
@@ -505,8 +526,7 @@ void MainWindow::editSnippet()
 {
     int currentRow = snippetTable->currentRow();
     if (currentRow < 0) {
-        QMessageBox::warning(this, "Error", "Please select a snippet to edit!");
-        return;
+        return;  // Button should be disabled anyway
     }
 
     QDialog dialog(this);
@@ -557,13 +577,7 @@ void MainWindow::editSnippet()
             return;
         }
 
-        // Check for duplicate triggers (excluding current row)
-        for (int i = 0; i < snippetTable->rowCount(); ++i) {
-            if (i != currentRow && snippetTable->item(i, 0)->text() == trigger) {
-                QMessageBox::warning(this, "Error", "A snippet with this trigger already exists!");
-                return;
-            }
-        }
+        // Note: Duplicate triggers are allowed - Espanso will show a dialog to choose between them
 
         snippetTable->setItem(currentRow, 0, new QTableWidgetItem(trigger));
         snippetTable->setItem(currentRow, 1, new QTableWidgetItem(replace));
@@ -577,8 +591,7 @@ void MainWindow::deleteSnippet()
 {
     QList<QTableWidgetItem*> selectedItems = snippetTable->selectedItems();
     if (selectedItems.isEmpty()) {
-        QMessageBox::warning(this, "Error", "Please select snippets to delete!");
-        return;
+        return;  // Button should be disabled anyway
     }
 
     // Get unique rows (items can be from different columns of the same row)
@@ -615,6 +628,90 @@ void MainWindow::deleteSnippet()
     }
 }
 
+void MainWindow::copySnippets()
+{
+    QList<QTableWidgetItem*> selectedItems = snippetTable->selectedItems();
+    if (selectedItems.isEmpty()) {
+        return;
+    }
+
+    // Get unique rows (items can be from different columns of the same row)
+    QSet<int> rowsToCopy;
+    for (QTableWidgetItem* item : selectedItems) {
+        rowsToCopy.insert(item->row());
+    }
+
+    if (rowsToCopy.isEmpty()) {
+        return;
+    }
+
+    // Build YAML content for selected snippets (for clipboard)
+    QString yamlContent = "# Copied snippets\n\nmatches:\n";
+    
+    QList<int> sortedRows = rowsToCopy.values();
+    std::sort(sortedRows.begin(), sortedRows.end());
+    
+    // Duplicate snippets in the table
+    for (int row : sortedRows) {
+        QString trigger = snippetTable->item(row, 0)->text();
+        QString replace = snippetTable->item(row, 1)->text();
+        QString description = snippetTable->item(row, 2)->text();
+
+        // Add duplicate to table
+        int newRow = snippetTable->rowCount();
+        snippetTable->insertRow(newRow);
+        snippetTable->setItem(newRow, 0, new QTableWidgetItem(trigger));
+        snippetTable->setItem(newRow, 1, new QTableWidgetItem(replace));
+        snippetTable->setItem(newRow, 2, new QTableWidgetItem(description));
+
+        // Build YAML content for clipboard
+        // Escape backslashes for YAML
+        QString escapedTrigger = escapeForYaml(trigger);
+        QString escapedReplace = escapeForYaml(replace);
+        QString escapedDescription = escapeForYaml(description);
+
+        yamlContent += "  - trigger: " + (needsQuotes(escapedTrigger) ? "\"" + escapedTrigger + "\"" : escapedTrigger) + "\n";
+        
+        // Handle multiline replace content
+        if (escapedReplace.contains("\n")) {
+            yamlContent += "    replace: |\n";
+            QStringList lines = escapedReplace.split("\n");
+            for (const QString &line : lines) {
+                yamlContent += "      " + line + "\n";
+            }
+        } else {
+            yamlContent += "    replace: " + (needsQuotes(escapedReplace) ? "\"" + escapedReplace + "\"" : escapedReplace) + "\n";
+        }
+        
+        if (!escapedDescription.isEmpty()) {
+            yamlContent += "    vars:\n";
+            yamlContent += "      - name: description\n";
+            yamlContent += "        type: string\n";
+            yamlContent += "        params:\n";
+            yamlContent += "          value: " + (needsQuotes(escapedDescription) ? "\"" + escapedDescription + "\"" : escapedDescription) + "\n";
+        }
+        yamlContent += "\n";
+    }
+
+    // Copy to clipboard
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    clipboard->setText(yamlContent);
+    
+    // Show feedback
+    QString message;
+    if (rowsToCopy.size() == 1) {
+        message = "1 snippet duplicated and copied to clipboard";
+    } else {
+        message = QString("%1 snippets duplicated and copied to clipboard").arg(rowsToCopy.size());
+    }
+    
+    // Show temporary status message
+    statusBar()->showMessage(message, 2000);
+    
+    // Update YAML status icon
+    updateYamlStatusIcon();
+}
+
 void MainWindow::saveSnippets()
 {
     if (yamlFileComboBox->currentText().isEmpty()) {
@@ -631,6 +728,11 @@ void MainWindow::saveSnippets()
         QString trigger = snippetTable->item(i, 0)->text();
         QString replace = snippetTable->item(i, 1)->text();
         QString description = snippetTable->item(i, 2)->text();
+
+        // Escape backslashes for YAML
+        trigger = escapeForYaml(trigger);
+        replace = escapeForYaml(replace);
+        description = escapeForYaml(description);
 
         yamlContent += "  - trigger: " + (needsQuotes(trigger) ? "\"" + trigger + "\"" : trigger) + "\n";
         
@@ -861,19 +963,6 @@ bool MainWindow::needsQuotes(const QString &text) const
            text.contains('@') || text.contains('%') || text.contains('`');
 }
 
-bool MainWindow::hasDuplicateTriggers() const
-{
-    QSet<QString> triggers;
-    for (int i = 0; i < snippetTable->rowCount(); ++i) {
-        QString trigger = snippetTable->item(i, 0)->text();
-        if (triggers.contains(trigger)) {
-            return true;
-        }
-        triggers.insert(trigger);
-    }
-    return false;
-}
-
 void MainWindow::updateYamlStatusIcon()
 {
     // Check for matches: only, and file must not be empty
@@ -931,4 +1020,21 @@ void MainWindow::deleteCurrentFile()
             QMessageBox::critical(this, "Error", "Could not delete file: " + file.errorString());
         }
     }
+}
+
+// Helper to escape backslashes for YAML
+QString MainWindow::escapeForYaml(const QString &text) const {
+    QString result = text;
+    result.replace("\\", "\\\\");
+    return result;
+}
+
+void MainWindow::updateButtonStates()
+{
+    QItemSelectionModel *selectionModel = snippetTable->selectionModel();
+    QModelIndexList selectedIndexes = selectionModel->selectedIndexes();
+    bool hasSelection = !selectedIndexes.isEmpty();
+    editButton->setEnabled(hasSelection);
+    deleteButton->setEnabled(hasSelection);
+    copyButton->setEnabled(hasSelection);
 }

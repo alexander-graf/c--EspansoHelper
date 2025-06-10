@@ -25,6 +25,11 @@ set(RESOURCES
     resources.qrc
 )
 
+# Windows resource file for application icon
+if(WIN32)
+    set(RESOURCES ${RESOURCES} app.rc)
+endif()
+
 # Create executable
 add_executable(espanso_helper ${SOURCES} ${HEADERS} ${RESOURCES})
 
