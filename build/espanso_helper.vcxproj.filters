@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\build\espanso_helper_autogen\mocs_compilation_Debug.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\src\mainwindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\build\espanso_helper_autogen\EWIEGA46WW_Debug\qrc_resources.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\build\espanso_helper_autogen\mocs_compilation_Release.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\build\espanso_helper_autogen\EWIEGA46WW_Release\qrc_resources.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\build\espanso_helper_autogen\mocs_compilation_MinSizeRel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\build\espanso_helper_autogen\EWIEGA46WW_MinSizeRel\qrc_resources.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\build\espanso_helper_autogen\mocs_compilation_RelWithDebInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\build\espanso_helper_autogen\EWIEGA46WW_RelWithDebInfo\qrc_resources.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\src\mainwindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\build\CMakeFiles\2eb3b594551e936e74e83e7f7725e742\qrc_resources.cpp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\crazykungfu\Projects\c++EspansoHelper\resources.qrc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{72D073DE-C0CD-3C9E-A58F-6559B7DE0838}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{E62FEAA7-C221-331F-9D89-8B029CBFD0B8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{43923647-E7CA-33DB-9ACE-9C091A0024FC}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

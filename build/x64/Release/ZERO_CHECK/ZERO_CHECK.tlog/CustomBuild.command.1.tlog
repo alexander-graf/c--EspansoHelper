@@ -1,0 +1,10 @@
+^C:\USERS\CRAZYKUNGFU\PROJECTS\C++ESPANSOHELPER\BUILD\CMAKEFILES\F8ABEDF777BD147CF5620D62FF38E29F\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/crazykungfu/Projects/c++EspansoHelper -BC:/Users/crazykungfu/Projects/c++EspansoHelper/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/crazykungfu/Projects/c++EspansoHelper/build/espanso_helper.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

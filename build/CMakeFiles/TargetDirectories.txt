@@ -1,0 +1,3 @@
+C:/Users/crazykungfu/Projects/c++EspansoHelper/build/CMakeFiles/espanso_helper.dir
+C:/Users/crazykungfu/Projects/c++EspansoHelper/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/crazykungfu/Projects/c++EspansoHelper/build/CMakeFiles/ZERO_CHECK.dir
