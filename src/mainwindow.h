@@ -39,6 +39,7 @@ private slots:
 private:
     void setupUI();
     void createConnections();
+    void setupKeyboardShortcuts();
     QString getEspansoConfigPath() const;
     QString getEspansoMatchDirectory() const;
     void scanYamlFiles();
@@ -47,6 +48,9 @@ private:
     bool needsQuotes(const QString &text) const;
     bool hasDuplicateTriggers() const;
     void updateYamlStatusIcon();
+
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
 
     QTableWidget *snippetTable;
     QPushButton *addButton;

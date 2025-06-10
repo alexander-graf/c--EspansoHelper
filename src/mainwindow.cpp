@@ -23,6 +23,9 @@
 #include <QRegularExpression>
 #include <QTextStream>
 #include <QSet>
+#include <QShortcut>
+#include <QKeyEvent>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -31,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     matchDirectory = getEspansoMatchDirectory();
     setupUI();
     createConnections();
+    setupKeyboardShortcuts();
     scanYamlFiles();
     if (yamlFileComboBox->count() > 0) {
         loadSnippets();
@@ -275,20 +279,106 @@ void MainWindow::createConnections()
     connect(deleteButton, &QPushButton::clicked, this, &MainWindow::deleteSnippet);
     connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveSnippets);
     connect(reloadButton, &QPushButton::clicked, this, [this]() {
+        // Visual feedback
+        reloadButton->setEnabled(false);
+        reloadButton->setText("Reloading...");
+        
+        // Perform reload
         QString currentFile = yamlFileComboBox->currentText();
         scanYamlFiles();
-        // Restore the previously selected file
         int index = yamlFileComboBox->findText(currentFile);
         if (index >= 0) {
             yamlFileComboBox->setCurrentIndex(index);
         }
         loadSnippets();
+        
+        // Restore button after short delay
+        QTimer::singleShot(500, this, [this]() {
+            reloadButton->setEnabled(true);
+            reloadButton->setText("Reload");
+        });
     });
     connect(yamlFileComboBox, QOverload<const QString &>::of(&QComboBox::currentTextChanged),
             this, &MainWindow::onYamlFileChanged);
     connect(openDirButton, &QPushButton::clicked, this, &MainWindow::openMatchDirectory);
     connect(newFileButton, &QPushButton::clicked, this, &MainWindow::createNewYamlFile);
     connect(deleteFileButton, &QPushButton::clicked, this, &MainWindow::deleteCurrentFile);
+}
+
+void MainWindow::setupKeyboardShortcuts()
+{
+    // Create shortcuts
+    QShortcut *addShortcut = new QShortcut(QKeySequence("Ctrl+N"), this);
+    QShortcut *editShortcut = new QShortcut(QKeySequence("F2"), this);
+    QShortcut *deleteShortcut = new QShortcut(QKeySequence("Delete"), this);
+    QShortcut *saveShortcut = new QShortcut(QKeySequence("Ctrl+S"), this);
+    QShortcut *reloadShortcut = new QShortcut(QKeySequence("F5"), this);
+    QShortcut *newFileShortcut = new QShortcut(QKeySequence("Ctrl+Shift+N"), this);
+    QShortcut *deleteFileShortcut = new QShortcut(QKeySequence("Ctrl+Delete"), this);
+    QShortcut *openDirShortcut = new QShortcut(QKeySequence("Ctrl+O"), this);
+    
+    // Connect shortcuts
+    connect(addShortcut, &QShortcut::activated, this, &MainWindow::addNewSnippet);
+    connect(editShortcut, &QShortcut::activated, this, &MainWindow::editSnippet);
+    connect(deleteShortcut, &QShortcut::activated, this, &MainWindow::deleteSnippet);
+    connect(saveShortcut, &QShortcut::activated, this, &MainWindow::saveSnippets);
+    connect(reloadShortcut, &QShortcut::activated, this, [this]() {
+        // Visual feedback for keyboard shortcut too
+        reloadButton->setEnabled(false);
+        reloadButton->setText("Reloading...");
+        
+        QString currentFile = yamlFileComboBox->currentText();
+        scanYamlFiles();
+        int index = yamlFileComboBox->findText(currentFile);
+        if (index >= 0) {
+            yamlFileComboBox->setCurrentIndex(index);
+        }
+        loadSnippets();
+        
+        QTimer::singleShot(500, this, [this]() {
+            reloadButton->setEnabled(true);
+            reloadButton->setText("Reload");
+        });
+    });
+    connect(newFileShortcut, &QShortcut::activated, this, &MainWindow::createNewYamlFile);
+    connect(deleteFileShortcut, &QShortcut::activated, this, &MainWindow::deleteCurrentFile);
+    connect(openDirShortcut, &QShortcut::activated, this, &MainWindow::openMatchDirectory);
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+    // Handle Enter key for editing
+    if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
+        if (snippetTable->hasFocus() && snippetTable->currentRow() >= 0) {
+            editSnippet();
+            return;
+        }
+    }
+    
+    // Handle Escape key to clear selection
+    if (event->key() == Qt::Key_Escape) {
+        if (snippetTable->hasFocus()) {
+            snippetTable->clearSelection();
+            return;
+        }
+    }
+    
+    // Handle Ctrl+A for select all
+    if (event->key() == Qt::Key_A && event->modifiers() == Qt::ControlModifier) {
+        if (snippetTable->hasFocus()) {
+            snippetTable->selectAll();
+            return;
+        }
+    }
+    
+    // Handle Ctrl+F for focus on combo box
+    if (event->key() == Qt::Key_F && event->modifiers() == Qt::ControlModifier) {
+        yamlFileComboBox->setFocus();
+        yamlFileComboBox->showPopup();
+        return;
+    }
+    
+    QMainWindow::keyPressEvent(event);
 }
 
 QString MainWindow::getEspansoConfigPath() const
