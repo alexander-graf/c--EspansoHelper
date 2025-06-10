@@ -100,7 +100,16 @@ void MainWindow::createConnections()
     connect(editButton, &QPushButton::clicked, this, &MainWindow::editSnippet);
     connect(deleteButton, &QPushButton::clicked, this, &MainWindow::deleteSnippet);
     connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveSnippets);
-    connect(reloadButton, &QPushButton::clicked, this, &MainWindow::loadSnippets);
+    connect(reloadButton, &QPushButton::clicked, this, [this]() {
+        QString currentFile = yamlFileComboBox->currentText();
+        scanYamlFiles();
+        // Restore the previously selected file
+        int index = yamlFileComboBox->findText(currentFile);
+        if (index >= 0) {
+            yamlFileComboBox->setCurrentIndex(index);
+        }
+        loadSnippets();
+    });
     connect(yamlFileComboBox, QOverload<const QString &>::of(&QComboBox::currentTextChanged),
             this, &MainWindow::onYamlFileChanged);
     connect(openDirButton, &QPushButton::clicked, this, &MainWindow::openMatchDirectory);
@@ -399,7 +408,7 @@ void MainWindow::loadSnippets()
     // Clear current table
     snippetTable->setRowCount(0);
 
-    // Only parse under 'matches:'
+    // Check for matches:
     QStringList lines = content.split('\n');
     int matchesIndex = -1;
     for (int i = 0; i < lines.size(); ++i) {
@@ -409,7 +418,30 @@ void MainWindow::loadSnippets()
         }
     }
     if (matchesIndex == -1) {
-        updateYamlStatusIcon();
+        // Auto-repair: wrap all found snippets under matches:
+        QString repaired = "# Espanso snippets\n\nmatches:\n";
+        bool inSnippet = false;
+        for (const QString &line : lines) {
+            QString trimmed = line.trimmed();
+            if (trimmed.startsWith("- trigger:")) {
+                repaired += "  " + line.trimmed() + "\n";
+                inSnippet = true;
+            } else if (inSnippet && !trimmed.isEmpty()) {
+                repaired += "    " + line.trimmed() + "\n";
+            } else if (trimmed.isEmpty()) {
+                repaired += "\n";
+                inSnippet = false;
+            }
+        }
+        // Save repaired file
+        QFile repairFile(filePath);
+        if (repairFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream stream(&repairFile);
+            stream << repaired;
+            repairFile.close();
+        }
+        // Reload with repaired file
+        loadSnippets();
         return;
     }
     // Parse only lines after 'matches:'
@@ -511,6 +543,14 @@ void MainWindow::createNewYamlFile()
                                            "Enter file name (without extension):", 
                                            QLineEdit::Normal, "", &ok);
     if (ok && !fileName.isEmpty()) {
+        // Validate filename - only letters, numbers, and underscores allowed
+        QRegularExpression validName("^[a-zA-Z0-9_]+$");
+        if (!validName.match(fileName).hasMatch()) {
+            QMessageBox::warning(this, "Invalid Filename", 
+                               "Filename can only contain letters, numbers, and underscores!");
+            return;
+        }
+        
         QString fullPath = matchDirectory + "/" + fileName + ".yml";
         QFile file(fullPath);
         if (file.open(QIODevice::WriteOnly)) {
@@ -548,11 +588,33 @@ bool MainWindow::hasDuplicateTriggers() const
 
 void MainWindow::updateYamlStatusIcon()
 {
-    if (hasDuplicateTriggers()) {
+    // Check for matches: only, and file must not be empty
+    bool hasMatches = false;
+    if (yamlFileComboBox->currentText().isEmpty()) {
+        qDebug() << "No file selected";
         yamlStatusLabel->setText("⚠");
         yamlStatusLabel->setStyleSheet("color: orange; font-weight: bold;");
+        return;
+    }
+    QString filePath = matchDirectory + "/" + yamlFileComboBox->currentText();
+    qDebug() << "Checking file for matches:" << filePath;
+    QFile file(filePath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString content = file.readAll();
+        file.close();
+        hasMatches = !content.trimmed().isEmpty() && content.contains("matches:");
+        qDebug() << "File contains 'matches:':" << hasMatches;
+        qDebug() << "File content preview:" << content.left(200);
     } else {
+        qDebug() << "Could not open file for status check";
+    }
+    if (hasMatches) {
+        qDebug() << "Setting green checkmark";
         yamlStatusLabel->setText("✓");
         yamlStatusLabel->setStyleSheet("color: green; font-weight: bold;");
+    } else {
+        qDebug() << "Setting orange warning";
+        yamlStatusLabel->setText("⚠");
+        yamlStatusLabel->setStyleSheet("color: orange; font-weight: bold;");
     }
 }
